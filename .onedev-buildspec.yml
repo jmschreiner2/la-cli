@@ -1,0 +1,18 @@
+version: 40
+jobs:
+- name: Push to Github
+  steps:
+  - !PushRepository
+    name: push
+    remoteUrl: https://github.com/jmschreiner2/la-cli
+    passwordSecret: Github Token
+    force: false
+    condition: SUCCESSFUL
+    optional: false
+  triggers:
+  - !BranchUpdateTrigger
+    branches: master
+  retryCondition: never
+  maxRetries: 3
+  retryDelay: 30
+  timeout: 14400
