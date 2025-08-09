@@ -4,8 +4,7 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
-
+	"github.com/jmschreiner2/la-cli/azure"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +16,12 @@ var subscriptionCmd = &cobra.Command{
 	Long: `Set you Azure Subscription ID
 usage: la-cli set subscription [subsciption-id]`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("subscription called")
+		subID := ""
+		if len(args) > 0 {
+			subID = args[0]
+		}
+
+		azure.SetSubscriptionID(subID)
 	},
 }
 

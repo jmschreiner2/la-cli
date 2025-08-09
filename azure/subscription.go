@@ -1,21 +1,84 @@
-package subscription
+package azure
 
 import (
+	"context"
 	"log/slog"
+	"os"
+	"strings"
 
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/viper"
+
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/subscription/armsubscription"
 )
 
-func promptSubscriptionId() {
-	prompt := promptui.Select {
-		Label: "Azure Subscription ID",
-		Items: [],
+const configSubscriptionKey = "subscriptionId"
+
+type subscription struct {
+	Name string
+	Id   string
+}
+
+func promptSubscriptionId() string {
+	slog.Debug("Loading azure credentials")
+	credential, err := azidentity.NewDefaultAzureCredential(nil)
+	if err != nil {
+		slog.Error("Could not load credentials.", "Error", err)
+		os.Exit(1)
 	}
+	factory, err := armsubscription.NewClientFactory(credential, nil)
+	if err != nil {
+		slog.Error("Failed to get subscription list.", "Error", err)
+		os.Exit(1)
+	}
+
+	slog.Debug("Getting list of subscriptions.")
+	client := factory.NewSubscriptionsClient()
+	subscriptions := client.NewListPager(nil)
+
+	subList := make([]subscription, 0, 20)
+
+	for subscriptions.More() {
+		page, err := subscriptions.NextPage(context.TODO())
+		if err != nil {
+			slog.Error("Failed to load subscription ids.", "Error", err)
+			os.Exit(1)
+		}
+
+		for _, sub := range page.ListResult.Value {
+			subList = append(subList, subscription{Name: strings.Clone(*sub.DisplayName), Id: strings.Clone(*sub.SubscriptionID)})
+		}
+	}
+
+	if len(subList) == 0 {
+		slog.Error("No Subscriptions To Select")
+		os.Exit(0)
+	}
+	subId := ""
+	if len(subList) == 1 {
+		subId = subList[0].Id
+		slog.Debug("Auto selecting only subscription", "Subscription", subId)
+	} else {
+		prompt := promptui.Select{
+			Label: "Azure Subscription ID",
+			Items: subList,
+		}
+
+		_, result, err := prompt.Run()
+		if err != nil {
+			slog.Error("Failed to select subscription id.", "Error", err)
+			os.Exit(1)
+		}
+
+		subId = result
+	}
+
+	return subId
 }
 
 func GetSubscriptionId() string {
-	configVal := viper.GetString("subscriptionId")
+	configVal := viper.GetString(configSubscriptionKey)
 
 	if len(configVal) != 0 {
 		slog.Debug("Using Subscription ID from Config", "subscription-id", configVal)
@@ -32,5 +95,13 @@ func GetSubscriptionId() string {
 	return result
 }
 
-func SetSubscriptionId(id string) {
+func SetSubscriptionID(id string) {
+	if len(id) != 0 {
+		slog.Debug("Updating Subscription ID to predetermined value.", "subscription-id", id)
+		viper.Set(configSubscriptionKey, id)
+	}
+
+	selectedID := promptSubscriptionId()
+	slog.Debug("Updating Subscription ID to selected value.", "subscription-id", selectedID)
+	viper.Set(configSubscriptionKey, selectedID)
 }
