@@ -20,7 +20,7 @@ type subscription struct {
 	Id   string
 }
 
-func promptSubscriptionId() string {
+func promptSubscriptionID() string {
 	slog.Debug("Loading azure credentials")
 	credential, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
@@ -55,10 +55,10 @@ func promptSubscriptionId() string {
 		slog.Error("No Subscriptions To Select")
 		os.Exit(0)
 	}
-	subId := ""
+	subID := ""
 	if len(subList) == 1 {
-		subId = subList[0].Id
-		slog.Debug("Auto selecting only subscription", "Subscription", subId)
+		subID = subList[0].Id
+		slog.Info("Auto selecting only subscription", "Subscription", subID)
 	} else {
 		prompt := promptui.Select{
 			Label: "Azure Subscription ID",
@@ -71,13 +71,13 @@ func promptSubscriptionId() string {
 			os.Exit(1)
 		}
 
-		subId = result
+		subID = result
 	}
 
-	return subId
+	return subID
 }
 
-func GetSubscriptionId() string {
+func GetSubscriptionID() string {
 	configVal := viper.GetString(configSubscriptionKey)
 
 	if len(configVal) != 0 {
@@ -85,14 +85,7 @@ func GetSubscriptionId() string {
 		return configVal
 	}
 
-	prompt := promptui.Prompt{
-		Label: "Azure Subscription ID",
-	}
-	result, err := prompt.Run()
-	if err != nil {
-		return ""
-	}
-	return result
+	return promptSubscriptionID()
 }
 
 func SetSubscriptionID(id string) {
@@ -101,7 +94,7 @@ func SetSubscriptionID(id string) {
 		viper.Set(configSubscriptionKey, id)
 	}
 
-	selectedID := promptSubscriptionId()
+	selectedID := promptSubscriptionID()
 	slog.Debug("Updating Subscription ID to selected value.", "subscription-id", selectedID)
 	viper.Set(configSubscriptionKey, selectedID)
 }

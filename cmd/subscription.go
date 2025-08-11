@@ -12,9 +12,17 @@ import (
 var subscriptionCmd = &cobra.Command{
 	Use:   "subscription",
 	Args:  cobra.ArbitraryArgs,
-	Short: "Set your Azure Subscription ID",
-	Long: `Set you Azure Subscription ID
-usage: la-cli set subscription [subsciption-id]`,
+	Short: "Configure the Azure subscription used by la-cli",
+	Long: `Configure the Azure Subscription ID that la-cli will use when querying Logic App information.
+
+You can optionally provide a subscription ID as an argument. After setting it, la-cli will open an interactive
+selector so you can confirm or choose a different subscription from your account. If you do not provide an ID,
+la-cli will directly open the interactive selector. If your account has only one subscription, it will be
+selected automatically.
+
+Usage:
+  la-cli set subscription [subscription-id]
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		subID := ""
 		if len(args) > 0 {
