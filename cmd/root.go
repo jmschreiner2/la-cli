@@ -5,16 +5,16 @@ package cmd
 
 import (
 	"fmt"
-	"log/slog"
 	"os"
 
+	"github.com/jmschreiner2/la-cli/logger"
+	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var (
 	cfgFile        string
-	verbose        bool
 	subscriptionID string
 )
 
@@ -28,11 +28,7 @@ This CLI will access your credentials using azure cli config file.
 If you have not setup your az, run az login.
 `,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		if verbose {
-			slog.SetLogLoggerLevel(slog.LevelDebug)
-		} else {
-			slog.SetLogLoggerLevel(slog.LevelInfo)
-		}
+		pterm.DefaultLogger.WithLevel(pterm.LogLevelDebug)
 	},
 }
 
@@ -49,7 +45,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.la-cli.yaml)")
-	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose Output")
+	rootCmd.PersistentFlags().BoolVarP(&logger.Verbose, "verbose", "v", false, "Verbose Output")
 	rootCmd.PersistentFlags().StringVarP(&subscriptionID, "subscirption-id", "s", "", "Azure Subscription ID")
 }
 

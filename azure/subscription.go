@@ -2,10 +2,10 @@ package azure
 
 import (
 	"context"
-	"log/slog"
 	"os"
 	"strings"
 
+	"github.com/jmschreiner2/la-cli/logger"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/viper"
 
@@ -17,23 +17,24 @@ const configSubscriptionKey = "subscriptionId"
 
 type subscription struct {
 	Name string
-	Id   string
+	ID   string
 }
 
 func promptSubscriptionID() string {
-	slog.Debug("Loading azure credentials")
+	logger := logger.NewLogger()
+	logger.Debug("Loading azure credentials")
 	credential, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
-		slog.Error("Could not load credentials.", "Error", err)
+		logger.Error("Could not load credentials.", logger.Args("Error", err))
 		os.Exit(1)
 	}
 	factory, err := armsubscription.NewClientFactory(credential, nil)
 	if err != nil {
-		slog.Error("Failed to get subscription list.", "Error", err)
+		logger.Error("Failed to get subscription list.", logger.Args("Error", err))
 		os.Exit(1)
 	}
 
-	slog.Debug("Getting list of subscriptions.")
+	logger.Debug("Getting list of subscriptions.")
 	client := factory.NewSubscriptionsClient()
 	subscriptions := client.NewListPager(nil)
 
@@ -42,23 +43,23 @@ func promptSubscriptionID() string {
 	for subscriptions.More() {
 		page, err := subscriptions.NextPage(context.TODO())
 		if err != nil {
-			slog.Error("Failed to load subscription ids.", "Error", err)
+			logger.Error("Failed to load subscription ids.", logger.Args("Error", err))
 			os.Exit(1)
 		}
 
 		for _, sub := range page.ListResult.Value {
-			subList = append(subList, subscription{Name: strings.Clone(*sub.DisplayName), Id: strings.Clone(*sub.SubscriptionID)})
+			subList = append(subList, subscription{Name: strings.Clone(*sub.DisplayName), ID: strings.Clone(*sub.SubscriptionID)})
 		}
 	}
 
 	if len(subList) == 0 {
-		slog.Error("No Subscriptions To Select")
+		logger.Error("No Subscriptions To Select")
 		os.Exit(0)
 	}
 	subID := ""
 	if len(subList) == 1 {
-		subID = subList[0].Id
-		slog.Info("Auto selecting only subscription", "Subscription", subID)
+		subID = subList[0].ID
+		logger.Info("Auto selecting only subscription", logger.Args("Subscription", subID))
 	} else {
 		prompt := promptui.Select{
 			Label: "Azure Subscription ID",
@@ -67,7 +68,7 @@ func promptSubscriptionID() string {
 
 		_, result, err := prompt.Run()
 		if err != nil {
-			slog.Error("Failed to select subscription id.", "Error", err)
+			logger.Error("Failed to select subscription id.", logger.Args("Error", err))
 			os.Exit(1)
 		}
 
@@ -78,10 +79,11 @@ func promptSubscriptionID() string {
 }
 
 func GetSubscriptionID() string {
+	logger := logger.NewLogger()
 	configVal := viper.GetString(configSubscriptionKey)
 
 	if len(configVal) != 0 {
-		slog.Debug("Using Subscription ID from Config", "subscription-id", configVal)
+		logger.Debug("Using Subscription ID from Config", logger.Args("Subscription Id", configVal))
 		return configVal
 	}
 
@@ -89,12 +91,13 @@ func GetSubscriptionID() string {
 }
 
 func SetSubscriptionID(id string) {
+	logger := logger.NewLogger()
 	if len(id) != 0 {
-		slog.Debug("Updating Subscription ID to predetermined value.", "subscription-id", id)
+		logger.Debug("Updating Subscription ID to predetermined value.", logger.Args("subscription-id", id))
 		viper.Set(configSubscriptionKey, id)
 	}
 
 	selectedID := promptSubscriptionID()
-	slog.Debug("Updating Subscription ID to selected value.", "subscription-id", selectedID)
+	logger.Debug("Updating Subscription ID to selected value.", logger.Args("subscription-id", selectedID))
 	viper.Set(configSubscriptionKey, selectedID)
 }

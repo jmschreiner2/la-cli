@@ -3,30 +3,31 @@ package azure
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"os"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appservice/armappservice/v5"
+	"github.com/jmschreiner2/la-cli/logger"
 	"github.com/manifoldco/promptui"
 )
 
 const logicAppKind = "functionapp,workflowapp"
 
 func getLogicAppList() []*armappservice.Site {
-	slog.Info("Getting list of Logic Apps")
-	slog.Debug("Initializing Factory")
+	logger := logger.NewLogger()
+	logger.Info("Getting list of Logic Apps")
+	logger.Debug("Initializing Factory")
 	creds := GetCredentials()
 	subID := GetSubscriptionID()
 
 	factory, err := armappservice.NewClientFactory(subID, creds, nil)
 	if err != nil {
-		slog.Error("Failed to get logic app list.", "Error", err)
+		logger.Error("Failed to get logic app list.", logger.Args("Error", err))
 		os.Exit(1)
 	}
 
-	slog.Debug("Getting logic app pager")
+	logger.Debug("Getting logic app pager")
 	client := factory.NewWebAppsClient()
 	logicapps := client.NewListPager(nil)
 
@@ -34,7 +35,7 @@ func getLogicAppList() []*armappservice.Site {
 	for logicapps.More() {
 		page, err := logicapps.NextPage(context.TODO())
 		if err != nil {
-			slog.Error("Failed to load logic apps.", "Error", err)
+			logger.Error("Failed to load logic apps.", logger.Args("Error", err))
 			os.Exit(1)
 		}
 
@@ -55,7 +56,8 @@ type logicAppItem struct {
 }
 
 func promptLogicAppSelector(logicApps []*armappservice.Site) *armappservice.Site {
-	slog.Debug("Setting up select for logic apps", "Logic App Count", len(logicApps))
+	logger := logger.NewLogger()
+	logger.Debug("Setting up select for logic apps", logger.Args("Logic App Count", len(logicApps)))
 	if len(logicApps) == 0 {
 		return nil
 	} else if len(logicApps) == 1 {
@@ -88,7 +90,7 @@ func promptLogicAppSelector(logicApps []*armappservice.Site) *armappservice.Site
 
 	i, _, err := prompt.Run()
 	if err != nil {
-		slog.Error("Failed to reder logic app select.", "Error", err)
+		logger.Error("Failed to reder logic app select.", logger.Args("Error", err))
 		os.Exit(1)
 	}
 
@@ -96,9 +98,8 @@ func promptLogicAppSelector(logicApps []*armappservice.Site) *armappservice.Site
 }
 
 func SelectLogicApp() *armappservice.Site {
-	slog.Debug("Loading azure credentials")
-	credentials := GetCredentials()
-	subID := GetSubscriptionID()
+	logger := logger.NewLogger()
+	logger.Debug("Loading azure credentials")
 
 	logicApps := getLogicAppList()
 
@@ -106,11 +107,12 @@ func SelectLogicApp() *armappservice.Site {
 }
 
 func getWorkflowList(creds *azidentity.DefaultAzureCredential, subID string, logicApp *armappservice.Site) []*armappservice.WorkflowEnvelope {
-	slog.Info("Getting list of Workflows")
-	slog.Debug("Initializing Factory")
+	logger := logger.NewLogger()
+	logger.Info("Getting list of Workflows")
+	logger.Debug("Initializing Factory")
 	factory, err := armappservice.NewClientFactory(subID, creds, nil)
 	if err != nil {
-		slog.Error("Failed to get workflow list.", "Error", err)
+		logger.Error("Failed to get workflow list.", logger.Args("Error", err))
 		os.Exit(1)
 	}
 
@@ -121,7 +123,7 @@ func getWorkflowList(creds *azidentity.DefaultAzureCredential, subID string, log
 	for workflows.More() {
 		page, err := workflows.NextPage(context.TODO())
 		if err != nil {
-			slog.Error("Failed to load logic apps.", "Error", err)
+			logger.Error("Failed to load logic apps.", logger.Args("Error", err))
 			os.Exit(1)
 		}
 
@@ -135,27 +137,29 @@ func getWorkflowList(creds *azidentity.DefaultAzureCredential, subID string, log
 }
 
 func getWorkflowDetails(resourceGroup string, siteName string, workflowName string) {
-	slog.Info("Getting workflow details")
-	slog.Debug("Initializing Factory")
-	creds := GetCredentials()
+	logger := logger.NewLogger()
+	logger.Info("Getting workflow details")
+	logger.Debug("Initializing Factory")
+	/*creds := GetCredentials()
 	subID := GetSubscriptionID()
 	factory, err := armappservice.NewClientFactory(subID, creds, nil)
 	if err != nil {
-		slog.Error("Failed to get workflow list.", "Error", err)
+		logger.Error("Failed to get workflow list.", "Error", err)
 		os.Exit(1)
 	}
 
 	client := factory.NewWebAppsClient()
-	workflow, err := client.GetWorkflow(context.TODO(), resourceGroup, siteName, workflowName, nil)
+	, err := client.GetWorkflow(context.TODO(), resourceGroup, siteName, workflowName, nil)*/
 
-	return workflow
+	// return workflow
 }
 
-func SelectWorkflow(logicApp *armappservice.Site) *armappservice.Workflow {
-	slog.Debug("Loading azure credentials")
+func SelectWorkflow(logicApp *armappservice.Site) *armappservice.WorkflowEnvelope {
+	logger := logger.NewLogger()
+	logger.Debug("Loading azure credentials")
 	credential, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
-		slog.Error("Could not load credentials.", "Error", err)
+		logger.Error("Could not load credentials.", logger.Args("Error", err))
 		os.Exit(1)
 	}
 	subID := GetSubscriptionID()
