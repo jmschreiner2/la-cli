@@ -147,6 +147,8 @@ func getWorkflowDetails(resourceGroup string, siteName string, workflowName stri
 
 	client := factory.NewWebAppsClient()
 	workflow, err := client.GetWorkflow(context.TODO(), resourceGroup, siteName, workflowName, nil)
+
+	return workflow
 }
 
 func SelectWorkflow(logicApp *armappservice.Site) *armappservice.Workflow {
